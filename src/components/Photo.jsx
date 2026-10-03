@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { boing, burstAt, floatText, pick, whoosh } from '../fx'
 
 // Drop the real picture into /public as photo.jpg — placeholder shows until then.
-const PHOTO_SRC = '/photo.jpg'
+const PHOTO_SRC = `${import.meta.env.BASE_URL}photo.jpg`
 
 const TRICKS = [
   { rotate: [0, 720], transition: { duration: 1, ease: 'backOut' } },

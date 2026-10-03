@@ -40,7 +40,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const a = new Audio('/song.mp3')
+    const a = new Audio(`${import.meta.env.BASE_URL}song.mp3`)
     a.loop = true
     a.volume = 0.6
     audio.current = a

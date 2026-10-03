@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { emojiBurst, rimshot } from '../fx'
 
-// used when the API is unreachable (offline, proxy not configured on the host, etc.)
+// used if jokes.json is missing or broken
 const FALLBACK = [
   'Сидят два друга. Один другому: «Сколько тебе лет?» — «Не знаю, торт ещё не посчитал свечи».',
   '— Доктор, мне каждый год на день рождения становится на год больше! — Ничего, это у всех так.',
@@ -41,7 +41,8 @@ const shuffle = (arr) => {
 
 async function loadJokes() {
   try {
-    const res = await fetch('/api/joke')
+    // snapshot of the shortiki.com API, refreshed on every deploy by scripts/fetch-jokes.mjs
+    const res = await fetch(`${import.meta.env.BASE_URL}jokes.json`)
     if (!res.ok) throw new Error(res.status)
     const data = await res.json()
     const jokes = data

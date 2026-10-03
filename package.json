@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "jokes": "node scripts/fetch-jokes.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
