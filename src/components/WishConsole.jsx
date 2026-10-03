@@ -16,7 +16,7 @@ const PS1 = 'georgiy@birthday:~$'
 
 export default function WishConsole() {
   const [wish, setWish] = useState('')
-  const [accepted, setAccepted] = useState('')
+  const [secretLength, setSecretLength] = useState(0)
   const [phase, setPhase] = useState('input') // input → running → done
   const [lines, setLines] = useState([])
   const [bar, setBar] = useState(0)
@@ -33,7 +33,9 @@ export default function WishConsole() {
     e.preventDefault()
     const text = wish.trim()
     if (!text || phase !== 'input') return
-    setAccepted(text)
+    // a wish that's shown doesn't come true — only its length is kept, for the ***** mask
+    setSecretLength(text.length)
+    setWish('')
     setPhase('running')
     setLines([])
     setBar(0)
@@ -60,7 +62,7 @@ export default function WishConsole() {
 
   const reset = () => {
     setPhase('input')
-    setWish('')
+    setSecretLength(0)
     setLines([])
     setBar(0)
   }
@@ -103,8 +105,9 @@ export default function WishConsole() {
           ) : (
             <>
               <p>
-                <span className="t-ps1">{PS1}</span> wish "{accepted}"
+                <span className="t-ps1">{PS1}</span> wish {'*'.repeat(Math.min(secretLength, 24))}
               </p>
+              <p className="t-dim">🔒 Желание скрыто. Его никто не увидит — иначе не сбудется 🤫</p>
               {lines.map((l, i) => (
                 <p key={i}>
                   <span className="t-dim">
@@ -143,22 +146,15 @@ export default function WishConsole() {
       </div>
 
       {phase === 'done' && (
-        <motion.div
-          className="congrats"
-          initial={{ scale: 0.6, opacity: 0, rotate: -4 }}
-          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.4 }}
+        <motion.button
+          className="btn"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 14, delay: 0.6 }}
+          onClick={(e) => (e.stopPropagation(), reset())}
         >
-          <h3>С днём рождения, Георгий! 🎉</h3>
-          <p>
-            Пусть «{accepted}» сбудется уже в этом году. Пусть код собирается с первого раза, вес на штанге растёт,
-            сессии закрываются на автомате, а жизнь будет такой же эпичной, как JoJo. Ты лучший! 💖
-          </p>
-          <p className="congrats-sign">— Nikita</p>
-          <button className="btn" onClick={(e) => (e.stopPropagation(), reset())}>
-            ↻ Загадать ещё одно
-          </button>
-        </motion.div>
+          ↻ Загадать ещё одно
+        </motion.button>
       )}
     </section>
   )

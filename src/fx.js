@@ -101,8 +101,28 @@ export function playLoop(buffer, volume = 1.6) {
 // ---------- confetti ----------
 const colors = ['#ff3cac', '#ffd23f', '#3bceac', '#7b2ff7', '#ff6b35', '#00f5d4']
 
+// One shared canvas rendered in a web worker, so confetti stays smooth while the main thread
+// is busy (chaos mode, popups, React work). Falls back to the main thread where unsupported.
+let instance
+function fire(opts) {
+  if (!instance) {
+    const canvas = document.createElement('canvas')
+    canvas.className = 'confetti-canvas'
+    document.body.appendChild(canvas)
+    instance = confetti.create(canvas, { resize: true, useWorker: true })
+  }
+  return instance(opts)
+}
+
+// rasterizing an emoji is expensive — do it once per emoji
+const emojiShapes = new Map()
+function emojiShape(text) {
+  if (!emojiShapes.has(text)) emojiShapes.set(text, confetti.shapeFromText({ text, scalar: 3 }))
+  return emojiShapes.get(text)
+}
+
 export function burstAt(x, y, opts = {}) {
-  confetti({
+  fire({
     particleCount: 60,
     spread: 80,
     startVelocity: 35,
@@ -115,8 +135,8 @@ export function burstAt(x, y, opts = {}) {
 export function cannons(duration = 2500) {
   const end = Date.now() + duration
   ;(function frame() {
-    confetti({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0, y: 0.8 }, colors })
-    confetti({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1, y: 0.8 }, colors })
+    fire({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0, y: 0.8 }, colors })
+    fire({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1, y: 0.8 }, colors })
     if (Date.now() < end) requestAnimationFrame(frame)
   })()
 }
@@ -125,7 +145,7 @@ export function fireworks(duration = 3000) {
   const end = Date.now() + duration
   const id = setInterval(() => {
     if (Date.now() > end) return clearInterval(id)
-    confetti({
+    fire({
       particleCount: 70,
       startVelocity: 30,
       spread: 360,
@@ -137,8 +157,16 @@ export function fireworks(duration = 3000) {
 }
 
 export function emojiRain(emoji = '🎉') {
-  const shape = confetti.shapeFromText({ text: emoji, scalar: 3 })
-  confetti({ shapes: [shape], scalar: 3, particleCount: 40, spread: 160, origin: { y: 0 }, startVelocity: 20, gravity: 0.8 })
+  fire({
+    shapes: [emojiShape(emoji)],
+    scalar: 3,
+    particleCount: 18,
+    spread: 160,
+    origin: { y: 0 },
+    startVelocity: 20,
+    gravity: 0.8,
+    ticks: 160,
+  })
 }
 
 // ---------- DOM emoji particles (cheap, no React re-renders) ----------

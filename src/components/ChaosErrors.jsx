@@ -32,7 +32,7 @@ const LOGS = [
   ['ok', '✔ 1 test passed (тест на крутость)'],
 ]
 
-const MAX = 12
+const MAX = 9
 const width = () => Math.min(300, window.innerWidth * 0.86)
 
 function spawn(id) {
@@ -60,8 +60,9 @@ export default function ChaosErrors() {
   useEffect(() => {
     const id = setInterval(() => {
       tick()
-      setItems((list) => [...list, spawn(nextId.current++)].slice(-MAX))
-    }, 650)
+      const item = spawn(nextId.current++)
+      setItems((list) => [...list, item].slice(-MAX))
+    }, 850)
     return () => clearInterval(id)
   }, [])
 
@@ -69,7 +70,8 @@ export default function ChaosErrors() {
   const close = (e, id) => {
     e.stopPropagation()
     boing()
-    setItems((list) => [...list.filter((x) => x.id !== id), spawn(nextId.current++), spawn(nextId.current++)].slice(-MAX))
+    const more = [spawn(nextId.current++), spawn(nextId.current++)]
+    setItems((list) => [...list.filter((x) => x.id !== id), ...more].slice(-MAX))
   }
 
   return (

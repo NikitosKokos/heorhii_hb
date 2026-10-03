@@ -117,7 +117,7 @@ export default function App() {
       setTimeout(() => toast('Псс… задуй свечи в микрофон и нажми ещё раз 😏'), 1200)
     }
 
-    const rain = setInterval(() => emojiRain(pick(['🤪', '😂', '🎉', '🦄', '🍕', '💩', '🎂'])), 500)
+    const rain = setInterval(() => emojiRain(pick(['🤪', '😂', '🎉', '🦄', '🍕', '💩', '🎂'])), 800)
     stopChaos.current = () => {
       clearInterval(rain)
       loop.current?.stop()
