@@ -1,0 +1,1 @@
+/api/joke  https://shortiki.com/export/api.php?format=json&type=top&amount=100  200
