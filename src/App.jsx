@@ -3,13 +3,30 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Balloons from './components/Balloons'
 import Cake from './components/Cake'
 import Fortune from './components/Fortune'
+import Gym from './components/Gym'
 import Intro from './components/Intro'
 import Joke from './components/Joke'
 import LikeButtons from './components/LikeButtons'
 import Photo from './components/Photo'
+import Stand from './components/Stand'
+import TimeStop, { TIME_STOP_MS } from './components/TimeStop'
 import Title from './components/Title'
 import UpdateBar from './components/UpdateBar'
-import { burstAt, cannons, emojiBurst, emojiRain, fart, fireworks, pick, rand, sfx } from './fx'
+import {
+  burstAt,
+  cannons,
+  decodeClip,
+  emojiBurst,
+  emojiRain,
+  fart,
+  fireworks,
+  pick,
+  playLoop,
+  rand,
+  sfx,
+  timeResume,
+  timeStop,
+} from './fx'
 import './App.css'
 
 const BG_EMOJI = ['🎈', '🎉', '🎂', '🥳', '🎁', '✨', '🍰', '🎊', '🍾', '⭐', '💖', '🤪']
@@ -27,9 +44,11 @@ export default function App() {
   const [opened, setOpened] = useState(false)
   const [muted, setMuted] = useState(false)
   const [chaos, setChaos] = useState(false)
+  const [timeStopped, setTimeStopped] = useState(false)
   const [toasts, setToasts] = useState([])
   const audio = useRef(null)
-  const recording = useRef(null) // 8-second mic clip from the cake, looped during chaos
+  const recording = useRef(null) // decoded 6-second mic clip from the cake, looped during chaos
+  const loop = useRef(null)
   const stopChaos = useRef(null)
   const toastId = useRef(0)
 
@@ -60,40 +79,34 @@ export default function App() {
     setMuted(next)
     sfx.muted = next
     audio.current.muted = next
-    if (recording.current) recording.current.muted = next
-    if (!next) audio.current.play().catch(() => {})
+    loop.current?.setMuted(next)
+    if (!next && !timeStopped) audio.current.play().catch(() => {})
   }
 
-  const saveRecording = useCallback((url) => {
-    const old = recording.current
-    if (old) {
-      old.pause()
-      URL.revokeObjectURL(old.src)
+  const saveRecording = useCallback(async (blob) => {
+    try {
+      recording.current = await decodeClip(blob)
+    } catch {
+      recording.current = null
     }
-    const clip = new Audio(url)
-    clip.loop = true
-    clip.muted = sfx.muted
-    recording.current = clip
   }, [])
 
   // chaos runs until the button is pressed again
   const toggleChaos = (e) => {
     e.stopPropagation()
     if (stopChaos.current) return stopChaos.current()
+    if (timeStopped) return toast('Время остановлено. Даже хаос ждёт ⏱️')
 
     setChaos(true)
     fart()
+    // the song keeps playing as usual, just a bit quieter so the clip is audible
     const a = audio.current
-    a.preservesPitch = false // chipmunk mode
-    a.playbackRate = 1.7
-    a.volume = 0.4
+    a.volume = 0.35
     a.play().catch(() => {})
 
-    // his own blowing from the cake, looping on top of the song
-    const clip = recording.current
-    if (clip) {
-      clip.currentTime = 0
-      clip.play().catch(() => {})
+    // his own 6-second blowing from the cake, looping on top of the song
+    if (recording.current) {
+      loop.current = playLoop(recording.current)
       toast('🔁 Узнаёшь этот звук? 😂')
     } else {
       toast(pick(CHAOS_TOASTS))
@@ -103,14 +116,28 @@ export default function App() {
     const rain = setInterval(() => emojiRain(pick(['🤪', '😂', '🎉', '🦄', '🍕', '💩', '🎂'])), 500)
     stopChaos.current = () => {
       clearInterval(rain)
-      clip?.pause()
-      a.playbackRate = 1
-      a.preservesPitch = true
+      loop.current?.stop()
+      loop.current = null
       a.volume = 0.6
       stopChaos.current = null
       setChaos(false)
       toast('Фух… 😮‍💨')
     }
+  }
+
+  // ZA WARUDO: freeze everything for 5 seconds
+  const stopTime = () => {
+    if (timeStopped) return
+    if (chaos) return toast('Даже DIO не может остановить этот хаос 😵')
+    setTimeStopped(true)
+    timeStop()
+    audio.current.pause()
+    setTimeout(() => {
+      timeResume()
+      audio.current.play().catch(() => {})
+      setTimeStopped(false)
+      toast('…и время снова пошло ⏱️')
+    }, TIME_STOP_MS)
   }
 
   // click anywhere → confetti + emoji explosion
@@ -141,7 +168,7 @@ export default function App() {
   }, [opened])
 
   return (
-    <div className={`app ${chaos ? 'chaos' : ''}`} onClick={handleClick}>
+    <div className={`app ${chaos ? 'chaos' : ''} ${timeStopped ? 'time-stop' : ''}`} onClick={handleClick}>
       <div className="bg-emoji" aria-hidden>
         {bgItems.map((b, i) => (
           <span
@@ -165,6 +192,8 @@ export default function App() {
               <Cake onToast={toast} onRecording={saveRecording} />
               <Fortune />
               <Joke />
+              <Gym onToast={toast} />
+              <Stand onTimeStop={stopTime} timeStopped={timeStopped} />
             </div>
             <LikeButtons onToast={toast} />
 
@@ -182,12 +211,15 @@ export default function App() {
             </section>
 
             <footer>
+              <div className="tbc">To Be Continued</div>
               Сделано с любовью ❤️ и лёгким безумием
             </footer>
           </main>
           <Balloons onToast={toast} />
         </>
       )}
+
+      <AnimatePresence>{timeStopped && <TimeStop key="za-warudo" />}</AnimatePresence>
 
       <button className="sound-btn" onClick={toggleSound} aria-label={muted ? 'Включить звук' : 'Выключить звук'}>
         {muted ? '🔇' : '🔊'}

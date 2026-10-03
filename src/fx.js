@@ -9,6 +9,7 @@ export const sfx = { muted: false }
 function tone({ freq = 440, to, dur = 0.15, type = 'sine', vol = 0.2, delay = 0 }) {
   if (sfx.muted) return
   const c = getCtx()
+  if (c.state === 'suspended') c.resume()
   const t = c.currentTime + delay
   const o = c.createOscillator()
   const g = c.createGain()
@@ -57,6 +58,44 @@ export const rimshot = () => {
   tone({ freq: 220, to: 110, dur: 0.15, vol: 0.4 })
   tone({ freq: 160, to: 80, dur: 0.18, vol: 0.4, delay: 0.16 })
   noise({ dur: 0.7, vol: 0.25, delay: 0.34 })
+}
+
+export const punch = () => {
+  tone({ freq: 200, to: 45, dur: 0.12, type: 'square', vol: 0.12 })
+  noise({ dur: 0.06, vol: 0.12 })
+}
+
+// ZA WARUDO: everything winds down… and back up
+export const timeStop = () => {
+  tone({ freq: 700, to: 30, dur: 1.5, type: 'sawtooth', vol: 0.1 })
+  tone({ freq: 320, to: 20, dur: 1.8, vol: 0.35 })
+}
+export const timeResume = () => {
+  tone({ freq: 30, to: 700, dur: 1.1, type: 'sawtooth', vol: 0.08 })
+  tone({ freq: 20, to: 320, dur: 1.1, vol: 0.3 })
+}
+
+// ---------- looping mic clip ----------
+// Played through Web Audio rather than <audio>: MediaRecorder files often have no duration
+// metadata, which makes <audio loop> stutter or not loop at all. An AudioBuffer loops gaplessly.
+export async function decodeClip(blob) {
+  return getCtx().decodeAudioData(await blob.arrayBuffer())
+}
+
+export function playLoop(buffer, volume = 1.6) {
+  const c = getCtx()
+  c.resume()
+  const src = c.createBufferSource()
+  const g = c.createGain()
+  src.buffer = buffer
+  src.loop = true
+  g.gain.value = sfx.muted ? 0 : volume
+  src.connect(g).connect(c.destination)
+  src.start()
+  return {
+    stop: () => src.stop(),
+    setMuted: (m) => (g.gain.value = m ? 0 : volume),
+  }
 }
 
 // ---------- confetti ----------

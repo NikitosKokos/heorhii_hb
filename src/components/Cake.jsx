@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ding, fireworks, whoosh } from '../fx'
 
 const CANDLES = 5
-const RECORD_SECONDS = 8
+const RECORD_SECONDS = 6
 
 export default function Cake({ onToast, onRecording }) {
   const [lit, setLit] = useState(() => Array(CANDLES).fill(true))
@@ -38,10 +38,14 @@ export default function Cake({ onToast, onRecording }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allOut])
 
-  // listens for blowing AND records the whole 8 seconds — the recording is used later by the chaos button 😈
+  // listens for blowing AND records the whole 6 seconds — the recording is used later by the chaos button 😈
   const startMic = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // noise suppression treats blowing as noise and erases it from both detection and the recording;
+      // echo cancellation stays on so the background song doesn't end up in the clip
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true },
+      })
       const ac = new AudioContext()
       const analyser = ac.createAnalyser()
       analyser.fftSize = 512
@@ -55,7 +59,7 @@ export default function Cake({ onToast, onRecording }) {
         stream.getTracks().forEach((t) => t.stop())
         ac.close()
         if (!chunks.length) return
-        onRecording(URL.createObjectURL(new Blob(chunks, { type: recorder.mimeType })))
+        onRecording(new Blob(chunks, { type: recorder.mimeType }))
         onToast('🎙️ Записано! Эта запись ещё пригодится… 😈')
       }
       recorder.start()
@@ -67,10 +71,10 @@ export default function Cake({ onToast, onRecording }) {
         let sum = 0
         for (const v of data) sum += (v - 128) ** 2
         const rms = Math.sqrt(sum / data.length)
-        loud = rms > 25 ? loud + 1 : 0
-        if (loud > 6) {
+        loud = rms > 18 ? loud + 1 : Math.min(loud, 0)
+        if (loud > 4) {
           blowNext()
-          loud = -20 // short cooldown between candles
+          loud = -12 // short cooldown between candles
         }
         raf = requestAnimationFrame(loop)
       }
@@ -78,15 +82,17 @@ export default function Cake({ onToast, onRecording }) {
 
       setSecondsLeft(RECORD_SECONDS)
       const countdown = setInterval(() => setSecondsLeft((s) => s - 1), 1000)
-      const stop = () => {
+      const stop = (finished) => {
         clearInterval(countdown)
         clearTimeout(timeout)
         cancelAnimationFrame(raf)
         if (recorder.state !== 'inactive') recorder.stop()
         micRef.current = null
         setSecondsLeft(0)
+        // time's up: whatever is still burning goes out, one after another
+        if (finished) litRef.current.filter(Boolean).forEach((_, k) => setTimeout(blowNext, k * 180))
       }
-      const timeout = setTimeout(stop, RECORD_SECONDS * 1000)
+      const timeout = setTimeout(() => stop(true), RECORD_SECONDS * 1000)
       micRef.current = { stop }
     } catch {
       onToast('🎤 Микрофон не дали. Дуй на экран сильнее, вдруг сработает 😅')
@@ -98,7 +104,7 @@ export default function Cake({ onToast, onRecording }) {
   return (
     <section className="card cake-section">
       <h2>🎂 Задуй свечи!</h2>
-      <p className="muted">Тыкай по огонькам — или дуй в микрофон по-настоящему</p>
+      <p className="muted">Тыкай по огонькам — или дуй в микрофон {RECORD_SECONDS} секунд по-настоящему</p>
 
       <div className="cake">
         <div className="candles">

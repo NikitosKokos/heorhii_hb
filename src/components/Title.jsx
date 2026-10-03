@@ -14,6 +14,11 @@ const TAGLINES = [
   'Возраст — это просто число. Большое число 🤫',
   'Сегодня тебе можно ВСЁ (почти) 🎉',
   'Торт сам себя не съест 🍰',
+  'Студент, вайбкодер и качок в одном флаконе 🎓💻💪',
+  'Yare yare daze… ещё один год 🧢',
+  'Сила: A · Скорость: A · Сон: E 😴',
+  'Сегодня день груди. И день рождения 🏋️',
+  'git commit -m "Георгий +1" 💻',
 ]
 
 function Letter({ char, index }) {
@@ -53,6 +58,8 @@ export default function Title() {
   let i = 0
   return (
     <header className="title-block">
+      <span className="menacing side left" aria-hidden>ゴ<br />ゴ<br />ゴ</span>
+      <span className="menacing side right" aria-hidden>ゴ<br />ゴ<br />ゴ</span>
       <h1 className="title" aria-label="С днем рождения, Георгий!">
         {LINES.map((words, li) => (
           <span key={li} className={`title-line ${li === 1 ? 'title-name' : ''}`}>
