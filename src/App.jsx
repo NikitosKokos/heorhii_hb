@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { logEasterEgg } from './ascii'
 import Balloons from './components/Balloons'
 import Cake from './components/Cake'
+import ChaosErrors from './components/ChaosErrors'
 import Fortune from './components/Fortune'
 import Gym from './components/Gym'
 import Intro from './components/Intro'
@@ -12,6 +14,7 @@ import Stand from './components/Stand'
 import TimeStop, { TIME_STOP_MS } from './components/TimeStop'
 import Title from './components/Title'
 import UpdateBar from './components/UpdateBar'
+import WishConsole from './components/WishConsole'
 import {
   burstAt,
   cannons,
@@ -68,6 +71,7 @@ export default function App() {
 
   const open = () => {
     setOpened(true)
+    logEasterEgg()
     audio.current.play().catch(() => {})
     cannons(3000)
     setTimeout(() => fireworks(2500), 1200)
@@ -195,6 +199,7 @@ export default function App() {
               <Gym onToast={toast} />
               <Stand onTimeStop={stopTime} timeStopped={timeStopped} />
             </div>
+            <WishConsole />
             <LikeButtons onToast={toast} />
 
             <section className="chaos-section">
@@ -212,10 +217,30 @@ export default function App() {
 
             <footer>
               <div className="tbc">To Be Continued</div>
-              Сделано с любовью ❤️ и лёгким безумием
+              <p className="made-by">
+                Сделано с любовью ❤️ by <b>Nikita</b>
+              </p>
+              <a className="site-link" href="https://tsykunov.com" target="_blank" rel="noopener noreferrer">
+                tsykunov.com ↗
+              </a>
             </footer>
           </main>
           <Balloons onToast={toast} />
+        </>
+      )}
+
+      {chaos && (
+        <>
+          <ChaosErrors />
+          {/* always reachable, even when error windows cover the original button */}
+          <motion.button
+            className="btn btn-danger chaos-stop"
+            onClick={toggleChaos}
+            initial={{ y: 120, x: '-50%' }}
+            animate={{ y: 0, x: '-50%' }}
+          >
+            😱 ХВАТИТ!
+          </motion.button>
         </>
       )}
 
